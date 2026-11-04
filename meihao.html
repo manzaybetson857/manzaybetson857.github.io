@@ -358,14 +358,14 @@
                         }
                         console.log('[父框架] 授权跳转 URL:', result.data.url);
                         parentStatusSpan.textContent = '正在跳转微信授权页...';
-                        alert(result.data.url);return;
+                        //alert(result.data.url);return;
                         // 必须在顶层窗口跳转，不能在 iframe 内跳转
                         window.top.location.href = result.data.url;
                     })
                     .catch(error => {
                         console.error('[父框架] 获取授权链接失败:', error);
                         parentStatusSpan.textContent = '获取授权链接失败';
-                        alert(error.message);
+                        //alert(error.message);
                         sendAuthResultToInner({
                             type: 'WECHAT_AUTH_ERROR',
                             message: '获取授权链接失败: ' + error.message
