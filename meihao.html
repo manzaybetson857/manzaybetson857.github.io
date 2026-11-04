@@ -358,7 +358,7 @@
                         }
                         console.log('[父框架] 授权跳转 URL:', result.data.url);
                         parentStatusSpan.textContent = '正在跳转微信授权页...';
-                        // alert(result.data.url);
+                        alert(result.data.url);
                         // 必须在顶层窗口跳转，不能在 iframe 内跳转
                         window.top.location.href = result.data.url;
                     })
