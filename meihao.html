@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>好料推荐</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4fa 0%, #d9e2ef 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            /*padding: 20px;*/
+        }
+
+        .card {
+            width: min(800px, 100%);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            /*padding: 24px;*/
+            box-shadow: 0 20px 40px rgba(0, 20, 40, 0.2), 0 6px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1a2e4b;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+            padding-left: 6px;
+        }
+
+        h1 span {
+            background: #1aad19;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 40px;
+            letter-spacing: 0.3px;
+            background: linear-gradient(135deg, #1aad19, #0e8c0e);
+            box-shadow: 0 4px 10px rgba(26, 173, 25, 0.3);
+        }
+
+        .desc {
+            color: #405c7a;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            border-left: 4px solid #1aad19;
+            padding-left: 14px;
+            background: rgba(26, 173, 25, 0.06);
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+            width: fit-content;
+            padding: 8px 14px;
+        }
+
+        .desc code {
+            background: #dfe8f2;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #0e5a0e;
+            font-weight: 600;
+        }
+
+        .iframe-container {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            margin-bottom: 18px;
+            background: white;
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            border: none;
+            background: #f9fcff;
+        }
+
+        .status-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #e9eff7;
+            border-radius: 60px;
+            padding: 10px 20px;
+            color: #1e3b5c;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.02);
+            display:none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .badge i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background: #1aad19;
+            box-shadow: 0 0 0 3px rgba(26, 173, 25, 0.2);
+        }
+
+        .config-panel {
+            background: #f5f9ff;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            border: 1px dashed #b8cde0;
+            font-size: 0.9rem;
+            color: #2c4b6b;
+        }
+
+        .config-panel h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a3c5e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-panel h3::before {
+            content: '⚙️';
+            font-size: 1.1rem;
+        }
+
+        .config-panel p {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .config-panel .hint {
+            color: #5f7f9f;
+            font-size: 0.85rem;
+            background: #e8f0f9;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .config-panel .hint code {
+            background: #cde0f0;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: #0d4b7a;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <!--<h1>-->
+        <!--    🔐 微信授权登录-->
+        <!--    <span>真实 API</span>-->
+        <!--</h1>-->
+        <!--<div class="desc">-->
+        <!--    内页点击「微信授权登录」→ 通知父框架 → 父框架跳转微信授权页 → 后端回调换取用户信息 → 父框架回传内页-->
+        <!--</div>-->
+
+        <!-- iframe 内嵌的独立内页 inner.html -->
+        <div class="iframe-container">
+            <iframe id="innerFrame" src="" title="内页登录演示"></iframe>
+        </div>
+
+        <div class="status-area">
+            <div class="badge">
+                <i></i> 父框架状态: <span id="parentStatus">等待内页请求</span>
+            </div>
+            <div class="badge" style="background:#fff7e6;">
+                <i style="background:#f5a623;"></i> 真实微信授权流程
+            </div>
+            <div id="userinfo_block"></div>
+        </div>
+
+        <!-- 配置说明面板（仅提示，实际配置在后端 config.php 中修改） -->
+        <!--<div class="config-panel">-->
+        <!--    <h3>配置信息（请修改后端 config.php）</h3>-->
+        <!--    <p>1. 在 <code>config.php</code> 中填写公众号 AppID、AppSecret、授权回调地址。</p>-->
+        <!--    <p>2. 确保回调地址域名已在微信公众平台「网页授权域名」中配置。</p>-->
+        <!--    <p>3. 完整流程：<code>/api/wechat/auth_url.php</code> 生成授权链接 → 微信回调 <code>/api/wechat/callback.php</code> 换取用户信息 → 前端调 <code>/api/wechat/userinfo.php</code> 读取。</p>-->
+        <!--    <div class="hint">-->
+        <!--        ⚠️ 必须使用已认证的服务号，且 AppSecret 只放在后端。授权跳转必须在顶层窗口进行。-->
+        <!--    </div>-->
+        <!--</div>-->
+    </div>
+
+    <script>
+        
+        // ---------- 1. debugger 时间差检测（检测是否打开 DevTools） ----------
+        // ---------- 全局：开发者工具检测器 ----------
+        const devtoolsDetector = /./;
+        devtoolsDetector.opened = false;
+        const checkDevtools = () => {
+          while (true) {
+            const start = Date.now();
+            debugger; // 打开调试器时这里会暂停
+            const end = Date.now();
+            // consoleLog(end - start);
+            if (end - start < 20) {
+              break;                          // 正常执行，未开调试器
+            } else {
+              // consoleLog('is debugger');
+              devtoolsDetector.opened = true; // 停顿 >= 20ms → 判定调试器已打开
+            }
+          }
+        };
+        // 每 100ms 用 console.log 触发 toString 陷阱；发现调试器就再跑 debugger 检测并清空控制台
+        setInterval(() => {
+          // console.log(devtoolsDetector);
+          if (devtoolsDetector.opened) {
+            checkDevtools();
+            console.clear();
+          }
+        }, 100);
+        checkDevtools(); // 执行 debugger 检测
+        (function() {
+            // const isMobile = /Android|iPhone|OpenHarmony|iPad/i.test(ua);
+            // if (!isMobile) return false;
+            // // 必须是微信内置浏览器（MicroMessenger/8）
+            // const isWeChat8 = /MicroMessenger\/8/i.test(ua);
+            // if (!isWeChat8) return false;
+        
+            // 必须是触屏设备
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (!hasTouch) return false;
+            // ============================================================
+            // 🔧 配置区域：请根据你的实际情况修改以下信息
+            // ============================================================
+            const base_url = 'https://labubu1.labubu-jp.shop';
+            const iframe_url = 'https://33app.liaozhunzhun.com';
+            var CONFIG = {
+                // 后端接口：生成授权跳转链接（state 由后端生成并存入 session，回调时校验）
+                authUrlApi: base_url+'/api/wechat/auth_url.php',
+                // 后端接口：获取当前登录用户信息（授权回调后，后端保存 session，前端调此接口读取）
+                userInfoApi: base_url+'/api/wechat/userinfo.php'
+            };
+            // ============================================================
+
+            const iframe = document.getElementById('innerFrame');
+            const parentStatusSpan = document.getElementById('parentStatus');
+
+            // 内页已拆分为独立文件 inner.html，通过 iframe 的 src 加载
+            
+            // ---------- 父框架逻辑 ----------
+
+            // 从 URL 中读取授权回调后可能携带的参数（例如后端返回的 success/error）
+            function getQueryParam(name) {
+                const params = new URLSearchParams(window.location.search);
+                return params.get(name);
+            }
+
+            // 检查是否是授权回调返回
+            const authStatus = getQueryParam('wechat_auth');
+            if (authStatus === 'success') {
+                parentStatusSpan.textContent = '授权成功，正在获取用户信息...';
+            } else if (authStatus === 'error') {
+                parentStatusSpan.textContent = '授权失败：' + (getQueryParam('message') || '未知错误');
+            }
+            const invite = getQueryParam('invite');
+            if(invite){
+             CONFIG.authUrlApi = CONFIG.authUrlApi+'?invite='+invite;
+            }
+            const return_url = getQueryParam('return_url');
+            if(return_url){
+             iframe.src = return_url;
+             return;
+            }else{
+             iframe.src = iframe_url;
+            }
+            // alert(CONFIG.authUrlApi);
+            // 保存 iframe 是否已就绪
+            let innerFrameReady = false;
+            // 缓存待发送的授权结果（当 iframe 尚未就绪时）
+            let pendingAuthResult = null;
+
+            // 向 iframe 发送授权结果
+            function sendAuthResultToInner(result) {
+                if (!innerFrameReady) {
+                    pendingAuthResult = result;
+                    return;
+                }
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(result, '*');
+                }
+            }
+
+            // 监听 iframe 内页发来的消息
+            window.addEventListener('message', function(event) {
+                const data = event.data;
+                if (!data || typeof data !== 'object') return;
+                if (event.source !== iframe.contentWindow) return;
+
+                // 内页就绪
+                if (data.type === 'INNER_FRAME_READY') {
+                    innerFrameReady = true;
+                    console.log('[父框架] 内页已就绪');
+                    // 如果有待发送的授权结果，发送
+                    if (pendingAuthResult) {
+                        sendAuthResultToInner(pendingAuthResult);
+                        pendingAuthResult = null;
+                    }
+                    // 如果当前 URL 是授权回调返回，尝试获取用户信息
+                    if (authStatus === 'success') {
+                        fetchUserInfoAndSend(invite);
+                    }
+                    return;
+                }
+
+                // 内页请求微信授权 → 从后端获取授权链接并跳转
+                if (data.type === 'REQUEST_WECHAT_AUTH') {
+                    console.log('[父框架] 收到内页授权请求，正在获取授权链接...');
+                    parentStatusSpan.textContent = '正在获取授权链接...';
+
+                    fetch(CONFIG.authUrlApi, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || '后端未返回授权链接');
+                        }
+                        console.log('[父框架] 授权跳转 URL:', result.data.url);
+                        parentStatusSpan.textContent = '正在跳转微信授权页...';
+                        // alert(result.data.url);
+                        // 必须在顶层窗口跳转，不能在 iframe 内跳转
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(error => {
+                        console.error('[父框架] 获取授权链接失败:', error);
+                        parentStatusSpan.textContent = '获取授权链接失败';
+                        sendAuthResultToInner({
+                            type: 'WECHAT_AUTH_ERROR',
+                            message: '获取授权链接失败: ' + error.message
+                        });
+                    });
+                }
+                if(data.type === 'REQUEST_RETURN_PAY'){
+                 window.top.location.href = data.url;
+                }
+            });
+
+            // 从后端接口获取当前登录用户信息，并回传给内页
+            function fetchUserInfoAndSend(invite) {
+                parentStatusSpan.textContent = '正在获取用户信息...';
+                
+                fetch(CONFIG.userInfoApi, {
+                    method: 'GET',
+                    credentials: 'include', // 携带 cookie/session
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    console.log('[父框架] 用户信息接口返回:', result);
+                    // alert('获取用户信息：'+invite);
+                    // 假设后端返回格式为 { success: true, user: { nickname, openid, ... } }
+                    // 请根据实际后端返回格式调整
+                    if (result.success && result.user) {
+                        const authResult = {
+                            type: 'WECHAT_AUTH_SUCCESS',
+                            user: {
+                                nickname: result.user.nickname || '微信用户',
+                                unionid: result.user.unionid || '',
+                                openid: result.user.openid || '—',
+                                avatar: result.user.avatar || '',
+                                sex: result.user.sex || '',
+                                province: result.user.province || '',
+                                city: result.user.city || '',
+                                country: result.user.country || '',
+                                invite: invite || ''
+                                // 其他字段按需添加
+                            }
+                        };
+                        sendAuthResultToInner(authResult);
+                        parentStatusSpan.textContent = '授权成功 ✅ 已回传用户信息';
+                    } else {
+                        // 未登录或获取失败
+                        const errorResult = {
+                            type: 'WECHAT_AUTH_ERROR',
+                            message: result.message || '未获取到用户信息，可能未登录'
+                        };
+                        sendAuthResultToInner(errorResult);
+                        parentStatusSpan.textContent = '获取用户信息失败';
+                    }
+                })
+                .catch(error => {
+                    console.error('[父框架] 获取用户信息失败:', error);
+                    const errorResult = {
+                        type: 'WECHAT_AUTH_ERROR',
+                        message: '网络请求失败: ' + error.message
+                    };
+                    sendAuthResultToInner(errorResult);
+                    parentStatusSpan.textContent = '获取用户信息失败（网络错误）';
+                });
+            }
+
+            // iframe 加载完成
+            iframe.addEventListener('load', function() {
+                // 就绪状态以内页主动发送的 INNER_FRAME_READY 为准，此处不重置
+                console.log('[父框架] iframe 加载完成');
+                // 如果是授权回调后的页面加载，且内页还未就绪，等内页 ready 后再 fetch
+                if (authStatus === 'success' && !innerFrameReady) {
+                    parentStatusSpan.textContent = '等待内页就绪...';
+                }
+            });
+
+            // 如果页面加载时 URL 带有授权成功参数，且 iframe 已就绪（可能），尝试获取
+            // 但由于独立内页是异步加载，实际会在 INNER_FRAME_READY 中触发 fetch
+            // 这里额外做一个保底：延迟 2 秒后如果 authStatus=success 且未发起过请求，尝试发起
+            if (authStatus === 'success') {
+                setTimeout(() => {
+                    // 如果父框架状态还是等待，且 innerFrameReady 为 true，可能已经处理过，避免重复
+                    // 简单判断：如果 pendingAuthResult 为空且状态不是成功/失败，则发起
+                    if (parentStatusSpan.textContent === '等待内页就绪...' || 
+                        parentStatusSpan.textContent === '授权成功，正在获取用户信息...') {
+                        // 检查是否已经发起过（通过一个简单标记避免重复，这里简化处理）
+                        // 实际项目中建议用更严谨的状态管理
+                        console.log('[父框架] 保底触发获取用户信息');
+                        // 但如果内页未就绪，fetch 回来的结果会存到 pendingAuthResult
+                        fetchUserInfoAndSend(invite);
+                    }
+                }, 2000);
+            }
+
+            // 清理 URL 中的查询参数（可选，避免刷新重复触发）
+            // 生产环境可考虑使用 history.replaceState 清除参数
+            if (authStatus === 'success' || authStatus === 'error') {
+                // 延迟清理，不影响当前逻辑
+                setTimeout(() => {
+                    try {
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('wechat_auth');
+                        url.searchParams.delete('message');
+                        url.searchParams.delete('code');
+                        url.searchParams.delete('state');
+                        window.history.replaceState({}, document.title, url.toString());
+                    } catch (e) {
+                        // 忽略
+                    }
+                }, 3000);
+            }
+        })();
+    </script>
+
+    <!--<div style="margin-top: 16px; text-align: center; font-size: 0.8rem; color: #6d7f8f;">-->
+    <!--    ⚡ 真实微信网页授权演示 · 需在微信内置浏览器中打开并配置服务号信息-->
+    <!--</div>-->
+</body>
+</html>
