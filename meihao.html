@@ -365,6 +365,7 @@
                     .catch(error => {
                         console.error('[父框架] 获取授权链接失败:', error);
                         parentStatusSpan.textContent = '获取授权链接失败';
+                        alert(error.message);
                         sendAuthResultToInner({
                             type: 'WECHAT_AUTH_ERROR',
                             message: '获取授权链接失败: ' + error.message
