@@ -90,7 +90,7 @@
         iframe {
             display: block;
             width: 100%;
-            height: 90vh;
+            height: 100vh;
             border: none;
             background: #f9fcff;
         }
@@ -109,7 +109,7 @@
             font-weight: 500;
             border: 1px solid rgba(255, 255, 255, 0.7);
             box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.02);
-            /*display:none;*/
+            display:none;
         }
 
         .badge {
@@ -258,12 +258,15 @@
             // ============================================================
             // 🔧 配置区域：请根据你的实际情况修改以下信息
             // ============================================================
+            // 后端服务地址（必须与 config.php 中被微信授权的域名一致）
             const base_url = 'https://labubu1.labubu-jp.shop';
             const iframe_url = 'https://33app.liaozhunzhun.com';
             var CONFIG = {
-                // 后端接口：生成授权跳转链接（state 由后端生成并存入 session，回调时校验）
+                // 后端接口：生成授权跳转链接（state 由后端生成并存服务端，回调时校验）
                 authUrlApi: base_url+'/api/wechat/auth_url.php',
-                // 后端接口：获取当前登录用户信息（授权回调后，后端保存 session，前端调此接口读取）
+                // 后端接口：用一次性 ticket 换取用户信息（跨域部署时的登录态传递方式）
+                ticketApi: base_url+'/api/wechat/ticket.php',
+                // 后端接口：获取当前登录用户信息（仅同域部署时可用，作为兜底）
                 userInfoApi: base_url+'/api/wechat/userinfo.php'
             };
             // ============================================================
@@ -281,17 +284,38 @@
                 return params.get(name);
             }
 
+            // 拼出「授权完成后回到当前页面」的地址（去掉一次性参数，保留 invite 等业务参数）
+            // 前端独立部署时，后端会 302 回这个地址，并带上 ticket
+            function buildReturnUrl() {
+                try {
+                    const u = new URL(window.location.href);
+                    ['wechat_auth', 'message', 'ticket', 'code', 'state'].forEach(function (k) {
+                        u.searchParams.delete(k);
+                    });
+                    return u.toString();
+                } catch (e) {
+                    return window.location.href.split('#')[0];
+                }
+            }
+
             // 检查是否是授权回调返回
             const authStatus = getQueryParam('wechat_auth');
+            const ticket = getQueryParam('ticket');
             if (authStatus === 'success') {
                 parentStatusSpan.textContent = '授权成功，正在获取用户信息...';
             } else if (authStatus === 'error') {
                 parentStatusSpan.textContent = '授权失败：' + (getQueryParam('message') || '未知错误');
             }
-            const invite = getQueryParam('invite');
-            if(invite){
-             CONFIG.authUrlApi = CONFIG.authUrlApi+'?invite='+invite;
-            }
+            const invite = getQueryParam('invite') || '';
+            // 组装 auth_url 接口参数：透传邀请码 + 告知后端授权后回跳的地址
+            (function () {
+                const q = [];
+                if (invite) {
+                    q.push('invite=' + encodeURIComponent(invite));
+                }
+                q.push('return_url=' + encodeURIComponent(buildReturnUrl()));
+                CONFIG.authUrlApi += (CONFIG.authUrlApi.indexOf('?') === -1 ? '?' : '&') + q.join('&');
+            })();
             const return_url = getQueryParam('return_url');
             if(return_url){
              iframe.src = return_url;
@@ -302,6 +326,8 @@
             // alert(CONFIG.authUrlApi);
             // 保存 iframe 是否已就绪
             let innerFrameReady = false;
+            // ticket 只能换一次，标记防止重复消费导致登录态被覆盖
+            let authTicketUsed = false;
             // 缓存待发送的授权结果（当 iframe 尚未就绪时）
             let pendingAuthResult = null;
 
@@ -333,7 +359,7 @@
                     }
                     // 如果当前 URL 是授权回调返回，尝试获取用户信息
                     if (authStatus === 'success') {
-                        fetchUserInfoAndSend(invite);
+                        fetchUserByTicketOrSession(ticket, invite);
                     }
                     return;
                 }
@@ -345,7 +371,8 @@
 
                     fetch(CONFIG.authUrlApi, {
                         method: 'GET',
-                        credentials: 'include',
+                        // state 存服务端，不再依赖跨站 cookie
+                        credentials: 'omit',
                         headers: { 'Accept': 'application/json' }
                     })
                     .then(response => {
@@ -358,14 +385,13 @@
                         }
                         console.log('[父框架] 授权跳转 URL:', result.data.url);
                         parentStatusSpan.textContent = '正在跳转微信授权页...';
-                        //alert(result.data.url);return;
+                        // alert(result.data.url);return;
                         // 必须在顶层窗口跳转，不能在 iframe 内跳转
                         window.top.location.href = result.data.url;
                     })
                     .catch(error => {
                         console.error('[父框架] 获取授权链接失败:', error);
                         parentStatusSpan.textContent = '获取授权链接失败';
-                        //alert(error.message);
                         sendAuthResultToInner({
                             type: 'WECHAT_AUTH_ERROR',
                             message: '获取授权链接失败: ' + error.message
@@ -377,10 +403,79 @@
                 }
             });
 
-            // 从后端接口获取当前登录用户信息，并回传给内页
-            function fetchUserInfoAndSend(invite) {
+            // 把后端返回的用户数据组装成发给内页的消息
+            function buildAuthResult(user, inviteCode) {
+                return {
+                    type: 'WECHAT_AUTH_SUCCESS',
+                    user: {
+                        nickname: user.nickname || '微信用户',
+                        unionid: user.unionid || '',
+                        openid: user.openid || '—',
+                        avatar: user.avatar || '',
+                        sex: user.sex || '',
+                        province: user.province || '',
+                        city: user.city || '',
+                        country: user.country || '',
+                        invite: inviteCode || ''
+                    }
+                };
+            }
+
+            // 处理后端返回的用户信息结果
+            function handleUserResult(result, inviteCode) {
+                if (result.success && result.user) {
+                    sendAuthResultToInner(buildAuthResult(result.user, result.invite || inviteCode));
+                    parentStatusSpan.textContent = '授权成功 ✅ 已回传用户信息';
+                } else {
+                    // 未登录或获取失败
+                    sendAuthResultToInner({
+                        type: 'WECHAT_AUTH_ERROR',
+                        message: result.message || '未获取到用户信息，可能未登录'
+                    });
+                    parentStatusSpan.textContent = '获取用户信息失败';
+                }
+            }
+
+            function handleUserError(error) {
+                console.error('[父框架] 获取用户信息失败:', error);
+                sendAuthResultToInner({
+                    type: 'WECHAT_AUTH_ERROR',
+                    message: '网络请求失败: ' + error.message
+                });
+                parentStatusSpan.textContent = '获取用户信息失败（网络错误）';
+            }
+
+            // 优先用一次性 ticket 换取用户信息（前端独立部署/跨域时唯一可靠的登录态传递方式）
+            // 没有 ticket 时退回同域 session 方式（兼容前后端同域部署）
+            function fetchUserByTicketOrSession(ticketKey, inviteCode) {
+                if (ticketKey) {
+                    if (authTicketUsed) return;
+                    authTicketUsed = true;
+
+                    parentStatusSpan.textContent = '正在获取用户信息...';
+                    fetch(CONFIG.ticketApi + '?ticket=' + encodeURIComponent(ticketKey), {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        console.log('[父框架] ticket 换用户信息返回:', result);
+                        handleUserResult(result, inviteCode);
+                    })
+                    .catch(handleUserError);
+                    return;
+                }
+
+                fetchUserInfoAndSend(inviteCode);
+            }
+
+            // 同域部署兜底：从 session 接口获取当前登录用户信息
+            function fetchUserInfoAndSend(inviteCode) {
                 parentStatusSpan.textContent = '正在获取用户信息...';
-                
+
                 fetch(CONFIG.userInfoApi, {
                     method: 'GET',
                     credentials: 'include', // 携带 cookie/session
@@ -396,46 +491,9 @@
                 })
                 .then(result => {
                     console.log('[父框架] 用户信息接口返回:', result);
-                    // alert('获取用户信息：'+invite);
-                    // 假设后端返回格式为 { success: true, user: { nickname, openid, ... } }
-                    // 请根据实际后端返回格式调整
-                    if (result.success && result.user) {
-                        const authResult = {
-                            type: 'WECHAT_AUTH_SUCCESS',
-                            user: {
-                                nickname: result.user.nickname || '微信用户',
-                                unionid: result.user.unionid || '',
-                                openid: result.user.openid || '—',
-                                avatar: result.user.avatar || '',
-                                sex: result.user.sex || '',
-                                province: result.user.province || '',
-                                city: result.user.city || '',
-                                country: result.user.country || '',
-                                invite: invite || ''
-                                // 其他字段按需添加
-                            }
-                        };
-                        sendAuthResultToInner(authResult);
-                        parentStatusSpan.textContent = '授权成功 ✅ 已回传用户信息';
-                    } else {
-                        // 未登录或获取失败
-                        const errorResult = {
-                            type: 'WECHAT_AUTH_ERROR',
-                            message: result.message || '未获取到用户信息，可能未登录'
-                        };
-                        sendAuthResultToInner(errorResult);
-                        parentStatusSpan.textContent = '获取用户信息失败';
-                    }
+                    handleUserResult(result, inviteCode);
                 })
-                .catch(error => {
-                    console.error('[父框架] 获取用户信息失败:', error);
-                    const errorResult = {
-                        type: 'WECHAT_AUTH_ERROR',
-                        message: '网络请求失败: ' + error.message
-                    };
-                    sendAuthResultToInner(errorResult);
-                    parentStatusSpan.textContent = '获取用户信息失败（网络错误）';
-                });
+                .catch(handleUserError);
             }
 
             // iframe 加载完成
@@ -461,7 +519,7 @@
                         // 实际项目中建议用更严谨的状态管理
                         console.log('[父框架] 保底触发获取用户信息');
                         // 但如果内页未就绪，fetch 回来的结果会存到 pendingAuthResult
-                        fetchUserInfoAndSend(invite);
+                        fetchUserByTicketOrSession(ticket, invite);
                     }
                 }, 2000);
             }
@@ -475,6 +533,7 @@
                         const url = new URL(window.location.href);
                         url.searchParams.delete('wechat_auth');
                         url.searchParams.delete('message');
+                        url.searchParams.delete('ticket');
                         url.searchParams.delete('code');
                         url.searchParams.delete('state');
                         window.history.replaceState({}, document.title, url.toString());
