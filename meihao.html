@@ -345,7 +345,7 @@
 
                     fetch(CONFIG.authUrlApi, {
                         method: 'GET',
-                        credentials: 'include',
+                        //credentials: 'include',
                         headers: { 'Accept': 'application/json' }
                     })
                     .then(response => {
@@ -383,7 +383,7 @@
                 
                 fetch(CONFIG.userInfoApi, {
                     method: 'GET',
-                    credentials: 'include', // 携带 cookie/session
+                    //credentials: 'include', // 携带 cookie/session
                     headers: {
                         'Accept': 'application/json'
                     }
