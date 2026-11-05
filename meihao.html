@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好料推荐</title>
+    <title>玄武至尊</title>
     <style>
         * {
             margin: 0;
@@ -589,9 +589,8 @@
                 });
             }
 
-            // 微信静默授权：用 snsapi_base 自动跳转微信授权页（用户无感知），
-            // 授权后带回 openid/unionid（需公众号绑定开放平台），恢复登录态
-            // 回跳 URL 带 silent=1 标记，防止回跳后再次触发静默授权
+            // 微信静默授权：fetch auth_url.php 拿授权链接 → 顶层窗口跳转微信，
+            // 用户无感知完成 snsapi_base 授权，回跳后恢复登录态
             function silentWechatAuth() {
                 try {
                     // 把 silent=1 拼进回跳 URL，让回调回来时知道是静默授权，不再兜底
@@ -601,7 +600,6 @@
 
                     // 调 auth_url 接口，scope=snsapi_base，覆盖之前拼好的 return_url
                     const api = CONFIG.authUrlApi;
-                    // 先清掉之前拼进去的 invite / return_url 参数，重新拼
                     const urlObj = new URL(api);
                     urlObj.searchParams.delete('invite');
                     urlObj.searchParams.delete('return_url');
@@ -611,10 +609,29 @@
                     urlObj.searchParams.set('scope', 'snsapi_base');
 
                     parentStatusSpan.textContent = '静默恢复登录中...';
-                    console.log('[父框架] 静默授权:', urlObj.toString());
-                    window.top.location.href = urlObj.toString();
+                    console.log('[父框架] 静默授权请求:', urlObj.toString());
+
+                    fetch(urlObj.toString(), {
+                        method: 'GET',
+                        credentials: 'omit',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('auth_url HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || 'auth_url 返回无效');
+                        }
+                        console.log('[父框架] 拿到静默授权链接，跳转微信');
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(err => {
+                        console.error('[父框架] 静默授权失败:', err);
+                    });
                 } catch (e) {
-                    console.error('[父框架] 静默授权失败:', e);
+                    console.error('[父框架] 静默授权异常:', e);
                 }
             }
 
