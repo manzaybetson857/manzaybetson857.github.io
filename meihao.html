@@ -470,7 +470,7 @@
                         IS_WECHAT, explicitAuthTriggered,
                         fullUrl: window.location.href,
                     });
-alert(isSilentBack);
+
                     // 静默授权回来但无 unionid → 自动触发一次显式授权（snsapi_userinfo），
                     // 用户只会看到一次微信确认页，之后 upsertUserProfile 会缓存 unionid
                     if (isSilentBack && noUnionid && IS_WECHAT && !explicitAuthTriggered) {
@@ -681,6 +681,7 @@ alert(isSilentBack);
                 try {
                     // 用 localStorage 标记本次是静默授权，回跳后 handleUserResult 据此判断
                     markAuthMode('silent');
+                    console.log('[父框架] markAuthMode("silent") 已调用, peekAuthMode=', peekAuthMode());
 
                     // 把 silent=1 拼进回跳 URL，让回调回来时知道是静默授权，不再兜底
                     const silentReturnUrl = new URL(buildReturnUrl());
