@@ -473,7 +473,7 @@
 
                     // 静默授权回来但无 unionid → 自动触发一次显式授权（snsapi_userinfo），
                     // 用户只会看到一次微信确认页，之后 upsertUserProfile 会缓存 unionid
-                    if (isSilentBack && noUnionid && IS_WECHAT && !explicitAuthTriggered) {
+                    if (noUnionid && IS_WECHAT && !explicitAuthTriggered) {
                         explicitAuthTriggered = true;
                         console.log('[父框架] 静默授权回跳但无 unionid，自动触发显式授权兜底');
                         explicitWechatAuth();
