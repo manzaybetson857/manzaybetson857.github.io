@@ -470,7 +470,7 @@
                         IS_WECHAT, explicitAuthTriggered,
                         fullUrl: window.location.href,
                     });
-
+alert(isSilentBack);
                     // 静默授权回来但无 unionid → 自动触发一次显式授权（snsapi_userinfo），
                     // 用户只会看到一次微信确认页，之后 upsertUserProfile 会缓存 unionid
                     if (isSilentBack && noUnionid && IS_WECHAT && !explicitAuthTriggered) {
