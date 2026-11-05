@@ -335,6 +335,8 @@
 
             // ---------- 长效登录令牌（保持登录 10 天，解决 iOS 微信丢 cookie） ----------
             const TOKEN_KEY = 'wechat_session_token';
+            // 用 localStorage 标记本次授权是静默还是显式（替代 URL 参数，避免被 history.replaceState 清掉）
+            const AUTH_MODE_KEY = 'wechat_auth_mode';  // 值: 'silent' | 'explicit'
 
             function getSavedToken() {
                 try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
@@ -344,6 +346,19 @@
             }
             function clearSavedToken() {
                 try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* 忽略 */ }
+            }
+            function markAuthMode(mode) {
+                try { localStorage.setItem(AUTH_MODE_KEY, mode); } catch (e) {}
+            }
+            function peekAuthMode() {
+                try { return localStorage.getItem(AUTH_MODE_KEY) || ''; } catch (e) { return ''; }
+            }
+            function consumeAuthMode() {
+                try {
+                    const m = localStorage.getItem(AUTH_MODE_KEY);
+                    localStorage.removeItem(AUTH_MODE_KEY);
+                    return m || '';
+                } catch (e) { return ''; }
             }
 
             // 向 iframe 发送授权结果
@@ -436,9 +451,35 @@
                 };
             }
 
+            // 防止静默→显式兜底死循环
+            let explicitAuthTriggered = false;
+
             // 处理后端返回的用户信息结果
             function handleUserResult(result, inviteCode) {
                 if (result.success && result.user) {
+                    // 从 localStorage 读取并消费本次授权模式（比 URL 参数更可靠）
+                    const authMode = consumeAuthMode();
+                    const isSilentBack = authMode === 'silent';
+                    const isExplicitBack = authMode === 'explicit';
+                    const user = result.user;
+                    const noUnionid = !user.unionid || user.unionid === '';
+
+                    console.log('[父框架] handleUserResult 条件检查:', {
+                        authMode, isSilentBack, isExplicitBack,
+                        noUnionid, unionid: user.unionid,
+                        IS_WECHAT, explicitAuthTriggered,
+                        fullUrl: window.location.href,
+                    });
+
+                    // 静默授权回来但无 unionid → 自动触发一次显式授权（snsapi_userinfo），
+                    // 用户只会看到一次微信确认页，之后 upsertUserProfile 会缓存 unionid
+                    if (isSilentBack && noUnionid && IS_WECHAT && !explicitAuthTriggered) {
+                        explicitAuthTriggered = true;
+                        console.log('[父框架] 静默授权回跳但无 unionid，自动触发显式授权兜底');
+                        explicitWechatAuth();
+                        return;
+                    }
+
                     // 保存长效令牌，下次打开页面即可静默恢复登录
                     if (result.session_token) {
                         saveToken(result.session_token);
@@ -452,6 +493,51 @@
                         message: result.message || '未获取到用户信息，可能未登录'
                     });
                     parentStatusSpan.textContent = '获取用户信息失败';
+                }
+            }
+
+            // 显式授权兜底：snsapi_userinfo，会弹微信授权确认页（仅首次），
+            // 授权成功后 unionid 和昵称头像都会拿到，之后静默授权也能补齐
+            function explicitWechatAuth() {
+                try {
+                    markAuthMode('explicit');
+
+                    const explicitReturnUrl = new URL(buildReturnUrl());
+                    explicitReturnUrl.searchParams.delete('silent');
+                    explicitReturnUrl.searchParams.set('explicit', '1');
+                    const returnStr = explicitReturnUrl.toString();
+
+                    const urlObj = new URL(CONFIG.authUrlApi);
+                    urlObj.searchParams.delete('invite');
+                    urlObj.searchParams.delete('return_url');
+                    urlObj.searchParams.delete('scope');
+                    if (invite) urlObj.searchParams.set('invite', invite);
+                    urlObj.searchParams.set('return_url', returnStr);
+                    urlObj.searchParams.set('scope', 'snsapi_userinfo');
+
+                    parentStatusSpan.textContent = '需确认授权以完善登录信息...';
+                    console.log('[父框架] 显式授权请求:', urlObj.toString());
+
+                    fetch(urlObj.toString(), {
+                        method: 'GET',
+                        credentials: 'omit',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('auth_url HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || 'auth_url 返回无效');
+                        }
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(err => {
+                        console.error('[父框架] 显式授权失败:', err);
+                    });
+                } catch (e) {
+                    console.error('[父框架] 显式授权异常:', e);
                 }
             }
 
@@ -539,8 +625,8 @@
 
                     // 所有微信环境兜底（iOS WKWebView 退出后清 localStorage，
                     // 安卓 X5 偶发也会掉）：自动触发静默授权，用户无感知恢复登录
-                    // 用 URL 里的 silent 参数防死循环（静默授权回跳后不会再次触发）
-                    const isSilentBack = getQueryParam('silent') === '1';
+                    // 用 localStorage 里的授权模式标记防死循环（比 URL 参数可靠）
+                    const isSilentBack = peekAuthMode() === 'silent';
                     if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
                         silentAuthTriggered = true;
                         console.log('[父框架] 微信环境，自动触发静默授权恢复登录');
@@ -568,7 +654,7 @@
                     } else {
                         clearSavedToken();
                         // token 无效时，微信环境再走一次静默授权兜底
-                        const isSilentBack = getQueryParam('silent') === '1';
+                        const isSilentBack = peekAuthMode() === 'silent';
                         if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
                             silentAuthTriggered = true;
                             silentWechatAuth();
@@ -580,7 +666,7 @@
                     if (String(error.message).indexOf('401') !== -1) {
                         clearSavedToken();
                         // 401 也触发静默授权兜底
-                        const isSilentBack = getQueryParam('silent') === '1';
+                        const isSilentBack = peekAuthMode() === 'silent';
                         if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
                             silentAuthTriggered = true;
                             silentWechatAuth();
@@ -593,6 +679,9 @@
             // 用户无感知完成 snsapi_base 授权，回跳后恢复登录态
             function silentWechatAuth() {
                 try {
+                    // 用 localStorage 标记本次是静默授权，回跳后 handleUserResult 据此判断
+                    markAuthMode('silent');
+
                     // 把 silent=1 拼进回跳 URL，让回调回来时知道是静默授权，不再兜底
                     const silentReturnUrl = new URL(buildReturnUrl());
                     silentReturnUrl.searchParams.set('silent', '1');
@@ -678,6 +767,8 @@
                         url.searchParams.delete('ticket');
                         url.searchParams.delete('code');
                         url.searchParams.delete('state');
+                        url.searchParams.delete('silent');
+                        url.searchParams.delete('explicit');
                         window.history.replaceState({}, document.title, url.toString());
                     } catch (e) {
                         // 忽略
