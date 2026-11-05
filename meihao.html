@@ -321,7 +321,7 @@
             const return_url = getQueryParam('return_url');
             if(return_url){
              iframe.src = return_url;
-             return;
+             // 注意：不 return，让后续 restoreSession 等初始化逻辑继续执行
             }else{
              iframe.src = iframe_url;
             }
@@ -515,14 +515,37 @@
                 .catch(handleUserError);
             }
 
+            // ---------- 环境检测 ----------
+            // 是否在微信内置浏览器中
+            const IS_WECHAT = /MicroMessenger/i.test(navigator.userAgent);
+            // 是否 iOS 微信（WKWebView 关闭 App 后 localStorage 会被清，需要静默授权兜底）
+            const IS_IOS_WECHAT = IS_WECHAT && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            console.log('[父框架] 环境检测:', { IS_WECHAT, IS_IOS_WECHAT, ua: navigator.userAgent.substring(0, 80) });
+
+            // 防止静默授权无限循环
+            let silentAuthTriggered = false;
+
             // 页面打开时尝试用本地长效令牌恢复登录（不依赖 cookie，iOS 微信同样有效）
+            // 如果 localStorage 没 token 且在 iOS 微信，自动触发 snsapi_base 静默授权兜底
             function restoreSession() {
-                // 有 ticket 时优先走授权回调流程
+                // 有 ticket 时优先走授权回调流程，不触发静默
                 if (ticket) return;
+                // 授权回调返回时也不触发静默
+                if (authStatus) return;
 
                 const saved = getSavedToken();
                 if (!saved) {
                     console.log('[父框架] 本地无登录令牌');
+
+                    // 所有微信环境兜底（iOS WKWebView 退出后清 localStorage，
+                    // 安卓 X5 偶发也会掉）：自动触发静默授权，用户无感知恢复登录
+                    // 用 URL 里的 silent 参数防死循环（静默授权回跳后不会再次触发）
+                    const isSilentBack = getQueryParam('silent') === '1';
+                    if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                        silentAuthTriggered = true;
+                        console.log('[父框架] 微信环境，自动触发静默授权恢复登录');
+                        silentWechatAuth();
+                    }
                     return;
                 }
 
@@ -544,15 +567,55 @@
                         parentStatusSpan.textContent = '已恢复登录状态';
                     } else {
                         clearSavedToken();
+                        // token 无效时，微信环境再走一次静默授权兜底
+                        const isSilentBack = getQueryParam('silent') === '1';
+                        if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                            silentAuthTriggered = true;
+                            silentWechatAuth();
+                        }
                     }
                 })
                 .catch(error => {
                     console.warn('[父框架] 令牌恢复失败:', error);
-                    // 令牌失效（401）时清除本地记录，等用户重新授权
                     if (String(error.message).indexOf('401') !== -1) {
                         clearSavedToken();
+                        // 401 也触发静默授权兜底
+                        const isSilentBack = getQueryParam('silent') === '1';
+                        if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                            silentAuthTriggered = true;
+                            silentWechatAuth();
+                        }
                     }
                 });
+            }
+
+            // 微信静默授权：用 snsapi_base 自动跳转微信授权页（用户无感知），
+            // 授权后带回 openid/unionid（需公众号绑定开放平台），恢复登录态
+            // 回跳 URL 带 silent=1 标记，防止回跳后再次触发静默授权
+            function silentWechatAuth() {
+                try {
+                    // 把 silent=1 拼进回跳 URL，让回调回来时知道是静默授权，不再兜底
+                    const silentReturnUrl = new URL(buildReturnUrl());
+                    silentReturnUrl.searchParams.set('silent', '1');
+                    const silentReturnStr = silentReturnUrl.toString();
+
+                    // 调 auth_url 接口，scope=snsapi_base，覆盖之前拼好的 return_url
+                    const api = CONFIG.authUrlApi;
+                    // 先清掉之前拼进去的 invite / return_url 参数，重新拼
+                    const urlObj = new URL(api);
+                    urlObj.searchParams.delete('invite');
+                    urlObj.searchParams.delete('return_url');
+                    urlObj.searchParams.delete('scope');
+                    if (invite) urlObj.searchParams.set('invite', invite);
+                    urlObj.searchParams.set('return_url', silentReturnStr);
+                    urlObj.searchParams.set('scope', 'snsapi_base');
+
+                    parentStatusSpan.textContent = '静默恢复登录中...';
+                    console.log('[父框架] 静默授权:', urlObj.toString());
+                    window.top.location.href = urlObj.toString();
+                } catch (e) {
+                    console.error('[父框架] 静默授权失败:', e);
+                }
             }
 
             // iframe 加载完成
