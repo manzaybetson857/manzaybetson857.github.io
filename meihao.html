@@ -266,6 +266,8 @@
                 authUrlApi: base_url+'/api/wechat/auth_url.php',
                 // 后端接口：用一次性 ticket 换取用户信息（跨域部署时的登录态传递方式）
                 ticketApi: base_url+'/api/wechat/ticket.php',
+                // 后端接口：用长效 session token 静默换取用户信息（保持登录，不依赖 cookie）
+                sessionApi: base_url+'/api/wechat/session.php',
                 // 后端接口：获取当前登录用户信息（仅同域部署时可用，作为兜底）
                 userInfoApi: base_url+'/api/wechat/userinfo.php'
             };
@@ -330,6 +332,19 @@
             let authTicketUsed = false;
             // 缓存待发送的授权结果（当 iframe 尚未就绪时）
             let pendingAuthResult = null;
+
+            // ---------- 长效登录令牌（保持登录 10 天，解决 iOS 微信丢 cookie） ----------
+            const TOKEN_KEY = 'wechat_session_token';
+
+            function getSavedToken() {
+                try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+            }
+            function saveToken(t) {
+                try { if (t) localStorage.setItem(TOKEN_KEY, t); } catch (e) { /* 忽略隐私模式等异常 */ }
+            }
+            function clearSavedToken() {
+                try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* 忽略 */ }
+            }
 
             // 向 iframe 发送授权结果
             function sendAuthResultToInner(result) {
@@ -424,6 +439,10 @@
             // 处理后端返回的用户信息结果
             function handleUserResult(result, inviteCode) {
                 if (result.success && result.user) {
+                    // 保存长效令牌，下次打开页面即可静默恢复登录
+                    if (result.session_token) {
+                        saveToken(result.session_token);
+                    }
                     sendAuthResultToInner(buildAuthResult(result.user, result.invite || inviteCode));
                     parentStatusSpan.textContent = '授权成功 ✅ 已回传用户信息';
                 } else {
@@ -496,6 +515,46 @@
                 .catch(handleUserError);
             }
 
+            // 页面打开时尝试用本地长效令牌恢复登录（不依赖 cookie，iOS 微信同样有效）
+            function restoreSession() {
+                // 有 ticket 时优先走授权回调流程
+                if (ticket) return;
+
+                const saved = getSavedToken();
+                if (!saved) {
+                    console.log('[父框架] 本地无登录令牌');
+                    return;
+                }
+
+                console.log('[父框架] 发现本地登录令牌，尝试恢复登录');
+                fetch(CONFIG.sessionApi, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + saved
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.success && result.user) {
+                        handleUserResult(result, result.invite || invite);
+                        parentStatusSpan.textContent = '已恢复登录状态';
+                    } else {
+                        clearSavedToken();
+                    }
+                })
+                .catch(error => {
+                    console.warn('[父框架] 令牌恢复失败:', error);
+                    // 令牌失效（401）时清除本地记录，等用户重新授权
+                    if (String(error.message).indexOf('401') !== -1) {
+                        clearSavedToken();
+                    }
+                });
+            }
+
             // iframe 加载完成
             iframe.addEventListener('load', function() {
                 // 就绪状态以内页主动发送的 INNER_FRAME_READY 为准，此处不重置
@@ -523,6 +582,9 @@
                     }
                 }, 2000);
             }
+
+            // 页面打开时先尝试恢复登录（有本地有效令牌就不必重新授权）
+            restoreSession();
 
             // 清理 URL 中的查询参数（可选，避免刷新重复触发）
             // 生产环境可考虑使用 history.replaceState 清除参数
