@@ -309,6 +309,7 @@
                 parentStatusSpan.textContent = '授权失败：' + (getQueryParam('message') || '未知错误');
             }
             const invite = getQueryParam('invite') || '';
+            alert(invite);
             // 组装 auth_url 接口参数：透传邀请码 + 告知后端授权后回跳的地址
             (function () {
                 const q = [];
