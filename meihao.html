@@ -320,11 +320,12 @@
                 CONFIG.authUrlApi += (CONFIG.authUrlApi.indexOf('?') === -1 ? '?' : '&') + q.join('&');
             })();
             const return_url = getQueryParam('return_url');
+            
             if(return_url){
              iframe.src = return_url;
              // 注意：不 return，让后续 restoreSession 等初始化逻辑继续执行
             }else{
-             iframe.src = iframe_url;
+             iframe.src = iframe_url+'?invite='+invite;
             }
             // alert(CONFIG.authUrlApi);
             // 保存 iframe 是否已就绪
