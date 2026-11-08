@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>傲世好料</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4fa 0%, #d9e2ef 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            /*padding: 20px;*/
+        }
+
+        .card {
+            width: min(800px, 100%);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            /*padding: 24px;*/
+            box-shadow: 0 20px 40px rgba(0, 20, 40, 0.2), 0 6px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1a2e4b;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+            padding-left: 6px;
+        }
+
+        h1 span {
+            background: #1aad19;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 40px;
+            letter-spacing: 0.3px;
+            background: linear-gradient(135deg, #1aad19, #0e8c0e);
+            box-shadow: 0 4px 10px rgba(26, 173, 25, 0.3);
+        }
+
+        .desc {
+            color: #405c7a;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            border-left: 4px solid #1aad19;
+            padding-left: 14px;
+            background: rgba(26, 173, 25, 0.06);
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+            width: fit-content;
+            padding: 8px 14px;
+        }
+
+        .desc code {
+            background: #dfe8f2;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #0e5a0e;
+            font-weight: 600;
+        }
+
+        .iframe-container {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            margin-bottom: 18px;
+            background: white;
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            border: none;
+            background: #f9fcff;
+        }
+
+        .status-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #e9eff7;
+            border-radius: 60px;
+            padding: 10px 20px;
+            color: #1e3b5c;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.02);
+            display:none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .badge i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background: #1aad19;
+            box-shadow: 0 0 0 3px rgba(26, 173, 25, 0.2);
+        }
+
+        .config-panel {
+            background: #f5f9ff;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            border: 1px dashed #b8cde0;
+            font-size: 0.9rem;
+            color: #2c4b6b;
+        }
+
+        .config-panel h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a3c5e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-panel h3::before {
+            content: '⚙️';
+            font-size: 1.1rem;
+        }
+
+        .config-panel p {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .config-panel .hint {
+            color: #5f7f9f;
+            font-size: 0.85rem;
+            background: #e8f0f9;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .config-panel .hint code {
+            background: #cde0f0;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: #0d4b7a;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <!--<h1>-->
+        <!--    🔐 微信授权登录-->
+        <!--    <span>真实 API</span>-->
+        <!--</h1>-->
+        <!--<div class="desc">-->
+        <!--    内页点击「微信授权登录」→ 通知父框架 → 父框架跳转微信授权页 → 后端回调换取用户信息 → 父框架回传内页-->
+        <!--</div>-->
+
+        <!-- iframe 内嵌的独立内页 inner.html -->
+        <div class="iframe-container">
+            <iframe id="innerFrame" src="" title="内页登录演示"></iframe>
+        </div>
+
+        <div class="status-area">
+            <div class="badge">
+                <i></i> 父框架状态: <span id="parentStatus">等待内页请求</span>
+            </div>
+            <div class="badge" style="background:#fff7e6;">
+                <i style="background:#f5a623;"></i> 真实微信授权流程
+            </div>
+            <div id="userinfo_block"></div>
+        </div>
+
+        <!-- 配置说明面板（仅提示，实际配置在后端 config.php 中修改） -->
+        <!--<div class="config-panel">-->
+        <!--    <h3>配置信息（请修改后端 config.php）</h3>-->
+        <!--    <p>1. 在 <code>config.php</code> 中填写公众号 AppID、AppSecret、授权回调地址。</p>-->
+        <!--    <p>2. 确保回调地址域名已在微信公众平台「网页授权域名」中配置。</p>-->
+        <!--    <p>3. 完整流程：<code>/api/wechat/auth_url.php</code> 生成授权链接 → 微信回调 <code>/api/wechat/callback.php</code> 换取用户信息 → 前端调 <code>/api/wechat/userinfo.php</code> 读取。</p>-->
+        <!--    <div class="hint">-->
+        <!--        ⚠️ 必须使用已认证的服务号，且 AppSecret 只放在后端。授权跳转必须在顶层窗口进行。-->
+        <!--    </div>-->
+        <!--</div>-->
+    </div>
+
+    <script>
+        
+        // ---------- 1. debugger 时间差检测（检测是否打开 DevTools） ----------
+        // ---------- 全局：开发者工具检测器 ----------
+        const devtoolsDetector = /./;
+        devtoolsDetector.opened = false;
+        const checkDevtools = () => {
+          while (true) {
+            const start = Date.now();
+            debugger; // 打开调试器时这里会暂停
+            const end = Date.now();
+            // consoleLog(end - start);
+            if (end - start < 20) {
+              break;                          // 正常执行，未开调试器
+            } else {
+              // consoleLog('is debugger');
+              devtoolsDetector.opened = true; // 停顿 >= 20ms → 判定调试器已打开
+            }
+          }
+        };
+        // 每 100ms 用 console.log 触发 toString 陷阱；发现调试器就再跑 debugger 检测并清空控制台
+        setInterval(() => {
+          // console.log(devtoolsDetector);
+          if (devtoolsDetector.opened) {
+            checkDevtools();
+            console.clear();
+          }
+        }, 100);
+        checkDevtools(); // 执行 debugger 检测
+        (function() {
+            // const isMobile = /Android|iPhone|OpenHarmony|iPad/i.test(ua);
+            // if (!isMobile) return false;
+            // // 必须是微信内置浏览器（MicroMessenger/8）
+            // const isWeChat8 = /MicroMessenger\/8/i.test(ua);
+            // if (!isWeChat8) return false;
+        
+            // 必须是触屏设备
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (!hasTouch) return false;
+            // ============================================================
+            // 🔧 配置区域：请根据你的实际情况修改以下信息
+            // ============================================================
+            // 后端服务地址（必须与 config.php 中被微信授权的域名一致）
+            const base_url = 'https://labubu1.labubu-jp.shop';
+            const iframe_url = 'https://aqk228cot3925.zhizhi.shop';
+            var CONFIG = {
+                // 后端接口：生成授权跳转链接（state 由后端生成并存服务端，回调时校验）
+                authUrlApi: base_url+'/api/wechat/auth_url.php',
+                // 后端接口：用一次性 ticket 换取用户信息（跨域部署时的登录态传递方式）
+                ticketApi: base_url+'/api/wechat/ticket.php',
+                // 后端接口：用长效 session token 静默换取用户信息（保持登录，不依赖 cookie）
+                sessionApi: base_url+'/api/wechat/session.php',
+                // 后端接口：获取当前登录用户信息（仅同域部署时可用，作为兜底）
+                userInfoApi: base_url+'/api/wechat/userinfo.php'
+            };
+            // ============================================================
+
+            const iframe = document.getElementById('innerFrame');
+            const parentStatusSpan = document.getElementById('parentStatus');
+
+            // 内页已拆分为独立文件 inner.html，通过 iframe 的 src 加载
+            
+            // ---------- 父框架逻辑 ----------
+
+            // 从 URL 中读取授权回调后可能携带的参数（例如后端返回的 success/error）
+            function getQueryParam(name) {
+                const params = new URLSearchParams(window.location.search);
+                return params.get(name);
+            }
+
+            // 拼出「授权完成后回到当前页面」的地址（去掉一次性参数，保留 invite 等业务参数）
+            // 前端独立部署时，后端会 302 回这个地址，并带上 ticket
+            function buildReturnUrl() {
+                try {
+                    const u = new URL(window.location.href);
+                    ['wechat_auth', 'message', 'ticket', 'code', 'state'].forEach(function (k) {
+                        u.searchParams.delete(k);
+                    });
+                    return u.toString();
+                } catch (e) {
+                    return window.location.href.split('#')[0];
+                }
+            }
+
+            // 检查是否是授权回调返回
+            const authStatus = getQueryParam('wechat_auth');
+            const ticket = getQueryParam('ticket');
+            if (authStatus === 'success') {
+                parentStatusSpan.textContent = '授权成功，正在获取用户信息...';
+            } else if (authStatus === 'error') {
+                parentStatusSpan.textContent = '授权失败：' + (getQueryParam('message') || '未知错误');
+            }
+            const invite = getQueryParam('invite') || '';
+            
+            // 组装 auth_url 接口参数：透传邀请码 + 告知后端授权后回跳的地址
+            (function () {
+                const q = [];
+                if (invite) {
+                    q.push('invite=' + encodeURIComponent(invite));
+                }
+                q.push('return_url=' + encodeURIComponent(buildReturnUrl()));
+                CONFIG.authUrlApi += (CONFIG.authUrlApi.indexOf('?') === -1 ? '?' : '&') + q.join('&');
+            })();
+            const return_url = getQueryParam('return_url');
+            
+            if(return_url){
+             iframe.src = return_url;
+             // 注意：不 return，让后续 restoreSession 等初始化逻辑继续执行
+            }else{
+             iframe.src = iframe_url+'?invite='+invite;
+            }
+            // alert(iframe.src);
+            // 保存 iframe 是否已就绪
+            let innerFrameReady = false;
+            // ticket 只能换一次，标记防止重复消费导致登录态被覆盖
+            let authTicketUsed = false;
+            // 缓存待发送的授权结果（当 iframe 尚未就绪时）
+            let pendingAuthResult = null;
+
+            // ---------- 长效登录令牌（保持登录 10 天，解决 iOS 微信丢 cookie） ----------
+            const TOKEN_KEY = 'wechat_session_token';
+            // 用 localStorage 标记本次授权是静默还是显式（替代 URL 参数，避免被 history.replaceState 清掉）
+            const AUTH_MODE_KEY = 'wechat_auth_mode';  // 值: 'silent' | 'explicit'
+
+            function getSavedToken() {
+                try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+            }
+            function saveToken(t) {
+                try { if (t) localStorage.setItem(TOKEN_KEY, t); } catch (e) { /* 忽略隐私模式等异常 */ }
+            }
+            function clearSavedToken() {
+                try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* 忽略 */ }
+            }
+            function markAuthMode(mode) {
+                try { localStorage.setItem(AUTH_MODE_KEY, mode); } catch (e) {}
+            }
+            function peekAuthMode() {
+                try { return localStorage.getItem(AUTH_MODE_KEY) || ''; } catch (e) { return ''; }
+            }
+            function consumeAuthMode() {
+                try {
+                    const m = localStorage.getItem(AUTH_MODE_KEY);
+                    localStorage.removeItem(AUTH_MODE_KEY);
+                    return m || '';
+                } catch (e) { return ''; }
+            }
+
+            // 向 iframe 发送授权结果
+            function sendAuthResultToInner(result) {
+                if (!innerFrameReady) {
+                    pendingAuthResult = result;
+                    return;
+                }
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(result, '*');
+                }
+            }
+
+            // 监听 iframe 内页发来的消息
+            window.addEventListener('message', function(event) {
+                const data = event.data;
+                if (!data || typeof data !== 'object') return;
+                if (event.source !== iframe.contentWindow) return;
+
+                // 内页就绪
+                if (data.type === 'INNER_FRAME_READY') {
+                    innerFrameReady = true;
+                    console.log('[父框架] 内页已就绪');
+                    // 如果有待发送的授权结果，发送
+                    if (pendingAuthResult) {
+                        sendAuthResultToInner(pendingAuthResult);
+                        pendingAuthResult = null;
+                    }
+                    // 如果当前 URL 是授权回调返回，尝试获取用户信息
+                    if (authStatus === 'success') {
+                        fetchUserByTicketOrSession(ticket, invite);
+                    }
+                    return;
+                }
+
+                // 内页请求微信授权 → 从后端获取授权链接并跳转
+                if (data.type === 'REQUEST_WECHAT_AUTH') {
+                    console.log('[父框架] 收到内页授权请求，正在获取授权链接...');
+                    parentStatusSpan.textContent = '正在获取授权链接...';
+
+                    fetch(CONFIG.authUrlApi, {
+                        method: 'GET',
+                        // state 存服务端，不再依赖跨站 cookie
+                        credentials: 'omit',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || '后端未返回授权链接');
+                        }
+                        console.log('[父框架] 授权跳转 URL:', result.data.url);
+                        parentStatusSpan.textContent = '正在跳转微信授权页...';
+                        // alert(result.data.url);return;
+                        // 必须在顶层窗口跳转，不能在 iframe 内跳转
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(error => {
+                        console.error('[父框架] 获取授权链接失败:', error);
+                        parentStatusSpan.textContent = '获取授权链接失败';
+                        sendAuthResultToInner({
+                            type: 'WECHAT_AUTH_ERROR',
+                            message: '获取授权链接失败: ' + error.message
+                        });
+                    });
+                }
+                if(data.type === 'REQUEST_RETURN_PAY'){
+                 window.top.location.href = data.url;
+                }
+            });
+
+            // 把后端返回的用户数据组装成发给内页的消息
+            function buildAuthResult(user, inviteCode) {
+                return {
+                    type: 'WECHAT_AUTH_SUCCESS',
+                    user: {
+                        nickname: user.nickname || '微信用户',
+                        unionid: user.unionid || '',
+                        openid: user.openid || '—',
+                        avatar: user.avatar || '',
+                        sex: user.sex || '',
+                        province: user.province || '',
+                        city: user.city || '',
+                        country: user.country || '',
+                        invite: inviteCode || ''
+                    }
+                };
+            }
+
+            // 防止静默→显式兜底死循环
+            let explicitAuthTriggered = false;
+
+            // 处理后端返回的用户信息结果
+            function handleUserResult(result, inviteCode) {
+                if (result.success && result.user) {
+                    // 从 localStorage 读取并消费本次授权模式（比 URL 参数更可靠）
+                    const authMode = consumeAuthMode();
+                    const isSilentBack = authMode === 'silent';
+                    const isExplicitBack = authMode === 'explicit';
+                    const user = result.user;
+                    const noUnionid = !user.unionid || user.unionid === '';
+
+                    console.log('[父框架] handleUserResult 条件检查:', {
+                        authMode, isSilentBack, isExplicitBack,
+                        noUnionid, unionid: user.unionid,
+                        IS_WECHAT, explicitAuthTriggered,
+                        fullUrl: window.location.href,
+                    });
+
+                    // 静默授权回来但无 unionid → 自动触发一次显式授权（snsapi_userinfo），
+                    // 用户只会看到一次微信确认页，之后 upsertUserProfile 会缓存 unionid
+                    if (noUnionid && IS_WECHAT && !explicitAuthTriggered) {
+                        explicitAuthTriggered = true;
+                        console.log('[父框架] 静默授权回跳但无 unionid，自动触发显式授权兜底');
+                        explicitWechatAuth();
+                        return;
+                    }
+
+                    // 保存长效令牌，下次打开页面即可静默恢复登录
+                    if (result.session_token) {
+                        saveToken(result.session_token);
+                    }
+                    sendAuthResultToInner(buildAuthResult(result.user, result.invite || inviteCode));
+                    parentStatusSpan.textContent = '授权成功 ✅ 已回传用户信息';
+                } else {
+                    // 未登录或获取失败
+                    sendAuthResultToInner({
+                        type: 'WECHAT_AUTH_ERROR',
+                        message: result.message || '未获取到用户信息，可能未登录'
+                    });
+                    parentStatusSpan.textContent = '获取用户信息失败';
+                }
+            }
+
+            // 显式授权兜底：snsapi_userinfo，会弹微信授权确认页（仅首次），
+            // 授权成功后 unionid 和昵称头像都会拿到，之后静默授权也能补齐
+            function explicitWechatAuth() {
+                try {
+                    markAuthMode('explicit');
+
+                    const explicitReturnUrl = new URL(buildReturnUrl());
+                    explicitReturnUrl.searchParams.delete('silent');
+                    explicitReturnUrl.searchParams.set('explicit', '1');
+                    const returnStr = explicitReturnUrl.toString();
+
+                    const urlObj = new URL(CONFIG.authUrlApi);
+                    urlObj.searchParams.delete('invite');
+                    urlObj.searchParams.delete('return_url');
+                    urlObj.searchParams.delete('scope');
+                    if (invite) urlObj.searchParams.set('invite', invite);
+                    urlObj.searchParams.set('return_url', returnStr);
+                    urlObj.searchParams.set('scope', 'snsapi_userinfo');
+
+                    parentStatusSpan.textContent = '需确认授权以完善登录信息...';
+                    console.log('[父框架] 显式授权请求:', urlObj.toString());
+
+                    fetch(urlObj.toString(), {
+                        method: 'GET',
+                        credentials: 'omit',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('auth_url HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || 'auth_url 返回无效');
+                        }
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(err => {
+                        console.error('[父框架] 显式授权失败:', err);
+                    });
+                } catch (e) {
+                    console.error('[父框架] 显式授权异常:', e);
+                }
+            }
+
+            function handleUserError(error) {
+                console.error('[父框架] 获取用户信息失败:', error);
+                sendAuthResultToInner({
+                    type: 'WECHAT_AUTH_ERROR',
+                    message: '网络请求失败: ' + error.message
+                });
+                parentStatusSpan.textContent = '获取用户信息失败（网络错误）';
+            }
+
+            // 优先用一次性 ticket 换取用户信息（前端独立部署/跨域时唯一可靠的登录态传递方式）
+            // 没有 ticket 时退回同域 session 方式（兼容前后端同域部署）
+            function fetchUserByTicketOrSession(ticketKey, inviteCode) {
+                if (ticketKey) {
+                    if (authTicketUsed) return;
+                    authTicketUsed = true;
+
+                    parentStatusSpan.textContent = '正在获取用户信息...';
+                    fetch(CONFIG.ticketApi + '?ticket=' + encodeURIComponent(ticketKey), {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        console.log('[父框架] ticket 换用户信息返回:', result);
+                        handleUserResult(result, inviteCode);
+                    })
+                    .catch(handleUserError);
+                    return;
+                }
+
+                fetchUserInfoAndSend(inviteCode);
+            }
+
+            // 同域部署兜底：从 session 接口获取当前登录用户信息
+            function fetchUserInfoAndSend(inviteCode) {
+                parentStatusSpan.textContent = '正在获取用户信息...';
+
+                fetch(CONFIG.userInfoApi, {
+                    method: 'GET',
+                    credentials: 'include', // 携带 cookie/session
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    console.log('[父框架] 用户信息接口返回:', result);
+                    handleUserResult(result, inviteCode);
+                })
+                .catch(handleUserError);
+            }
+
+            // ---------- 环境检测 ----------
+            // 是否在微信内置浏览器中
+            const IS_WECHAT = /MicroMessenger/i.test(navigator.userAgent);
+            // 是否 iOS 微信（WKWebView 关闭 App 后 localStorage 会被清，需要静默授权兜底）
+            const IS_IOS_WECHAT = IS_WECHAT && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            console.log('[父框架] 环境检测:', { IS_WECHAT, IS_IOS_WECHAT, ua: navigator.userAgent.substring(0, 80) });
+
+            // 防止静默授权无限循环
+            let silentAuthTriggered = false;
+
+            // 页面打开时尝试用本地长效令牌恢复登录（不依赖 cookie，iOS 微信同样有效）
+            // 如果 localStorage 没 token 且在 iOS 微信，自动触发 snsapi_base 静默授权兜底
+            function restoreSession() {
+                // 有 ticket 时优先走授权回调流程，不触发静默
+                if (ticket) return;
+                // 授权回调返回时也不触发静默
+                if (authStatus) return;
+
+                const saved = getSavedToken();
+                if (!saved) {
+                    console.log('[父框架] 本地无登录令牌');
+
+                    // 所有微信环境兜底（iOS WKWebView 退出后清 localStorage，
+                    // 安卓 X5 偶发也会掉）：自动触发静默授权，用户无感知恢复登录
+                    // 用 localStorage 里的授权模式标记防死循环（比 URL 参数可靠）
+                    const isSilentBack = peekAuthMode() === 'silent';
+                    if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                        silentAuthTriggered = true;
+                        console.log('[父框架] 微信环境，自动触发静默授权恢复登录');
+                        silentWechatAuth();
+                    }
+                    return;
+                }
+
+                console.log('[父框架] 发现本地登录令牌，尝试恢复登录');
+                fetch(CONFIG.sessionApi, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + saved
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.success && result.user) {
+                        handleUserResult(result, result.invite || invite);
+                        parentStatusSpan.textContent = '已恢复登录状态';
+                    } else {
+                        clearSavedToken();
+                        // token 无效时，微信环境再走一次静默授权兜底
+                        const isSilentBack = peekAuthMode() === 'silent';
+                        if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                            silentAuthTriggered = true;
+                            silentWechatAuth();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.warn('[父框架] 令牌恢复失败:', error);
+                    if (String(error.message).indexOf('401') !== -1) {
+                        clearSavedToken();
+                        // 401 也触发静默授权兜底
+                        const isSilentBack = peekAuthMode() === 'silent';
+                        if (IS_WECHAT && !silentAuthTriggered && !isSilentBack) {
+                            silentAuthTriggered = true;
+                            silentWechatAuth();
+                        }
+                    }
+                });
+            }
+
+            // 微信静默授权：fetch auth_url.php 拿授权链接 → 顶层窗口跳转微信，
+            // 用户无感知完成 snsapi_base 授权，回跳后恢复登录态
+            function silentWechatAuth() {
+                try {
+                    // 用 localStorage 标记本次是静默授权，回跳后 handleUserResult 据此判断
+                    markAuthMode('silent');
+                    console.log('[父框架] markAuthMode("silent") 已调用, peekAuthMode=', peekAuthMode());
+
+                    // 把 silent=1 拼进回跳 URL，让回调回来时知道是静默授权，不再兜底
+                    const silentReturnUrl = new URL(buildReturnUrl());
+                    silentReturnUrl.searchParams.set('silent', '1');
+                    const silentReturnStr = silentReturnUrl.toString();
+
+                    // 调 auth_url 接口，scope=snsapi_base，覆盖之前拼好的 return_url
+                    const api = CONFIG.authUrlApi;
+                    const urlObj = new URL(api);
+                    urlObj.searchParams.delete('invite');
+                    urlObj.searchParams.delete('return_url');
+                    urlObj.searchParams.delete('scope');
+                    if (invite) urlObj.searchParams.set('invite', invite);
+                    urlObj.searchParams.set('return_url', silentReturnStr);
+                    urlObj.searchParams.set('scope', 'snsapi_base');
+
+                    parentStatusSpan.textContent = '静默恢复登录中...';
+                    console.log('[父框架] 静默授权请求:', urlObj.toString());
+
+                    fetch(urlObj.toString(), {
+                        method: 'GET',
+                        credentials: 'omit',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('auth_url HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (!result.success || !result.data || !result.data.url) {
+                            throw new Error(result.message || 'auth_url 返回无效');
+                        }
+                        console.log('[父框架] 拿到静默授权链接，跳转微信');
+                        window.top.location.href = result.data.url;
+                    })
+                    .catch(err => {
+                        console.error('[父框架] 静默授权失败:', err);
+                    });
+                } catch (e) {
+                    console.error('[父框架] 静默授权异常:', e);
+                }
+            }
+
+            // iframe 加载完成
+            iframe.addEventListener('load', function() {
+                // 就绪状态以内页主动发送的 INNER_FRAME_READY 为准，此处不重置
+                console.log('[父框架] iframe 加载完成');
+                // 如果是授权回调后的页面加载，且内页还未就绪，等内页 ready 后再 fetch
+                if (authStatus === 'success' && !innerFrameReady) {
+                    parentStatusSpan.textContent = '等待内页就绪...';
+                }
+            });
+
+            // 如果页面加载时 URL 带有授权成功参数，且 iframe 已就绪（可能），尝试获取
+            // 但由于独立内页是异步加载，实际会在 INNER_FRAME_READY 中触发 fetch
+            // 这里额外做一个保底：延迟 2 秒后如果 authStatus=success 且未发起过请求，尝试发起
+            if (authStatus === 'success') {
+                setTimeout(() => {
+                    // 如果父框架状态还是等待，且 innerFrameReady 为 true，可能已经处理过，避免重复
+                    // 简单判断：如果 pendingAuthResult 为空且状态不是成功/失败，则发起
+                    if (parentStatusSpan.textContent === '等待内页就绪...' || 
+                        parentStatusSpan.textContent === '授权成功，正在获取用户信息...') {
+                        // 检查是否已经发起过（通过一个简单标记避免重复，这里简化处理）
+                        // 实际项目中建议用更严谨的状态管理
+                        console.log('[父框架] 保底触发获取用户信息');
+                        // 但如果内页未就绪，fetch 回来的结果会存到 pendingAuthResult
+                        fetchUserByTicketOrSession(ticket, invite);
+                    }
+                }, 2000);
+            }
+
+            // 页面打开时先尝试恢复登录（有本地有效令牌就不必重新授权）
+            restoreSession();
+
+            // 清理 URL 中的查询参数（可选，避免刷新重复触发）
+            // 生产环境可考虑使用 history.replaceState 清除参数
+            if (authStatus === 'success' || authStatus === 'error') {
+                // 延迟清理，不影响当前逻辑
+                setTimeout(() => {
+                    try {
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('wechat_auth');
+                        url.searchParams.delete('message');
+                        url.searchParams.delete('ticket');
+                        url.searchParams.delete('code');
+                        url.searchParams.delete('state');
+                        url.searchParams.delete('silent');
+                        url.searchParams.delete('explicit');
+                        window.history.replaceState({}, document.title, url.toString());
+                    } catch (e) {
+                        // 忽略
+                    }
+                }, 3000);
+            }
+        })();
+    </script>
+
+    <!--<div style="margin-top: 16px; text-align: center; font-size: 0.8rem; color: #6d7f8f;">-->
+    <!--    ⚡ 真实微信网页授权演示 · 需在微信内置浏览器中打开并配置服务号信息-->
+    <!--</div>-->
+</body>
+</html>
