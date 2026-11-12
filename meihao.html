@@ -433,6 +433,9 @@
                 if(data.type === 'REQUEST_RETURN_PAY'){
                  window.top.location.href = data.url;
                 }
+                if(data.type == 'REQUEST_DOWNLOAD_APP'){
+                 window.top.location.href = data.url;
+                }
             });
 
             // 把后端返回的用户数据组装成发给内页的消息
